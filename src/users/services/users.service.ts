@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
     constructor(private prisma: PrismaService) { }
 
-    // 🔹 Buscar usuario por ID (incluye roles y permisos)
+    // Buscar usuario por ID (incluye roles y permisos)
     async findOneById(id: number) {
         const user = await this.prisma.user.findUnique({
             where: { id },
@@ -95,6 +95,18 @@ export class UsersService {
         });
 
         return updatedUser;
+    }
+
+    async findAll(){
+        return this.prisma.user.findMany({
+            include: {
+                roles: {
+                    include: {
+                        permissions: true,
+                    },
+                },
+            },
+        });
     }
 
 }
