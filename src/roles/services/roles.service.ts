@@ -24,7 +24,7 @@ export class RolesService {
     }
 
     async findAll() {
-        return this.prisma.role.findMany({
+        return await this.prisma.role.findMany({
             include:{
                 permissions:true,
             }
@@ -32,7 +32,7 @@ export class RolesService {
     }
 
     async createRole(roleDto: RoleDto) {
-        return this.prisma.role.create({
+        return await this.prisma.role.create({
             data:{
                 name: roleDto.name,
             }
@@ -52,7 +52,7 @@ export class RolesService {
             throw new RoleNameException(existingName.name);
         } 
 
-        return this.prisma.role.update({
+        return await this.prisma.role.update({
             where: {id},
             data:{
                 name: updateRoleDto.name,
@@ -64,7 +64,7 @@ export class RolesService {
 
     }
     async deleteRole(id: number) {
-        return this.prisma.role.delete({
+        return await this.prisma.role.delete({
             where: {id}
         });
     }
