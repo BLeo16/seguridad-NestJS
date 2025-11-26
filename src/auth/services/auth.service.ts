@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'prisma/prisma.service';
 import { RegistUserDTO } from '../dtos/RegistUserDto';
+import { UserWithoutPassword } from '../dtos/interfaces/User.interface';
 
 @Injectable()
 export class AuthService {
@@ -11,9 +12,9 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
-  async validateUser(email: string, pass: string) {
+  async validateUser(email: string, pass: string): Promise<UserWithoutPassword | null> {
     const user = await this.usersService.findOneByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
@@ -22,7 +23,7 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
+  async login(user: UserWithoutPassword) {
     const userWithRolesAndPermissions = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: {
@@ -30,6 +31,9 @@ export class AuthService {
       },
     });
 
+    if (!userWithRolesAndPermissions.id) {
+      throw new UnauthorizedException();
+    }
     const roles = userWithRolesAndPermissions.roles.map(r => r.name);
     const permissions = userWithRolesAndPermissions.roles.flatMap(
       r => r.permissions.map(p => p.name),
