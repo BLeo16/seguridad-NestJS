@@ -3,7 +3,7 @@ import { UsersService } from '../services/users.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { HasPermission } from 'src/auth/decorators/has-permission.decorator';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
-import { hasSubscribers } from 'diagnostics_channel';
+import { UserStatus } from '@prisma/client';
 
 
 @Controller('users')
@@ -29,6 +29,15 @@ export class UsersController {
         @Body('roles') roles: string[]
     ) {
         return this.usersService.updateUserRoles(id, roles);
+    }
+
+    @Patch(':id/status')
+    @HasPermission('EDITAR_USUARIOS')
+    async updateUserStatus(
+        @Param('id', ParseIntPipe) id: number,
+        @Body('status') status: UserStatus
+    ) {
+        return this.usersService.updateUserStatus(id, status);
     }
 
     @Get()

@@ -15,10 +15,14 @@ export class AuthService {
   ) { }
 
   async validateUser(email: string, pass: string): Promise<UserWithoutPassword | null> {
-    const user = await this.usersService.findOneByEmail(email);
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user;
-      return result;
+    try {
+      const user = await this.usersService.findOneByEmail(email);
+      if (user && (await bcrypt.compare(pass, user.password))) {
+        const { password, ...result } = user;
+        return result;
+      }
+    } catch (error) {
+      throw new UnauthorizedException('Credenciales inválidas');
     }
     return null;
   }
@@ -42,6 +46,7 @@ export class AuthService {
     const payload = {
       sub: userWithRolesAndPermissions.id,
       email: userWithRolesAndPermissions.email,
+      status: userWithRolesAndPermissions.status,
       roles,
       permissions,
     };
@@ -52,7 +57,9 @@ export class AuthService {
   }
 
   async register(userDto: RegistUserDTO) {
-    const existingUser = await this.usersService.findOneByEmail(userDto.email);
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: userDto.email },
+    });
     if (existingUser) {
       throw new UnauthorizedException('Ya existe un usuario con este email');
     }

@@ -1,4 +1,5 @@
 import { RoleInterface } from "./Role.interface";
+import { UserStatus } from '@prisma/client';
 
 export interface ValidateUser {
     createdAt: Date;
@@ -10,6 +11,7 @@ export interface User {
     email: string;
     id: number;
     name: string | null;
+    status: UserStatus;
 }
 
 export interface UserWithoutPassword extends User, ValidateUser { }

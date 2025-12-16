@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -107,6 +108,27 @@ export class UsersService {
                 },
             },
         });
+    }
+
+    async updateUserStatus(id: number, status: UserStatus) {
+        // Verificar que el usuario exista
+        const user = await this.prisma.user.findUnique({ where: { id } });
+        if (!user) {
+            throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+        }
+
+        // Actualizar el status
+        const updatedUser = await this.prisma.user.update({
+            where: { id },
+            data: { status },
+            include: {
+                roles: {
+                    include: { permissions: true },
+                },
+            },
+        });
+
+        return updatedUser;
     }
 
 }
