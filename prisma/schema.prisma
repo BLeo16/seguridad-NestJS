@@ -38,3 +38,23 @@ model Permission {
   roles       Role[]   @relation("RolePermissions")
 }
 
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  products    Product[] @relation("CategoryProducts")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  price       Float
+  stock       Int       @default(0)
+  categoryId  Int
+  category    Category  @relation("CategoryProducts", fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

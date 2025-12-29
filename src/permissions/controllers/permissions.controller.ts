@@ -5,7 +5,7 @@ import { PermissionGuard } from "src/auth/guards/permission.guard";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
 import { HasPermission } from "src/auth/decorators/has-permission.decorator";
 
-@Controller()
+@Controller('permission')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class PermissionController {
     constructor(private permissionService: PermissionService) { }
