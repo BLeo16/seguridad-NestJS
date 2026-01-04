@@ -13,6 +13,12 @@ enum UserStatus{
   DELETED
 }
 
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -51,10 +57,37 @@ model Product {
   id          Int       @id @default(autoincrement())
   name        String    @unique
   description String?
-  price       Float
+  price       Decimal   @db.Decimal(10,2)
   stock       Int       @default(0)
   categoryId  Int
   category    Category  @relation("CategoryProducts", fields: [categoryId], references: [id])
+  images      ProductImage[]
+  inventoryMovements InventoryMovement[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  url       String
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model InventoryMovement {
+  id        Int                   @id @default(autoincrement())
+  productId Int
+  type      InventoryMovementType
+  quantity  Int
+  reason    String?
+  reference String?
+
+  product   Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
 }

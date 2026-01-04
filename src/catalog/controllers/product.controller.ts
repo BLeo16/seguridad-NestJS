@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe } from '@
 import { ProductService } from '../services/product.service';
 import { CreateProductDto } from '../dtos/ProductCreate.dto';
 import { UpdateProductDto } from '../dtos/ProductUpdate.dto';
+import { ProductImageDto } from '../dtos/ProductImageDto';
 
 
 @Controller('product')
@@ -34,5 +35,18 @@ export class ProductController {
     @Delete(':id')
     async deleteProduct(@Param('id', ParseIntPipe) id: number) {
         return this.productService.deleteProduct(id)
+    }
+
+    @Post(':id/images')
+    async addImage(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: ProductImageDto
+    ) {
+        return this.productService.addImage(id, dto.url);
+    }
+
+    @Get(':id/images')
+    async getImages(@Param('id', ParseIntPipe) id: number) {
+        return this.productService.getImages(id);
     }
 }

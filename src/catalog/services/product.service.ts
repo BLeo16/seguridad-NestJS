@@ -51,4 +51,21 @@ export class ProductService{
             where: { id }
         });
     }
+
+    async addImage(productId: number, url: string) {
+        await this.findOneById(productId); // check exists
+        return this.prisma.productImage.create({
+            data: {
+                productId,
+                url,
+            },
+        });
+    }
+
+    async getImages(productId: number) {
+        await this.findOneById(productId);
+        return this.prisma.productImage.findMany({
+            where: { productId },
+        });
+    }
 }
