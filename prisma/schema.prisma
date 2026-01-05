@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserStatus{
+enum UserStatus {
   ACTIVE
   BLOCKED
   DELETED
@@ -20,14 +20,14 @@ enum InventoryMovementType {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
   password  String
   name      String?
   status    UserStatus @default(ACTIVE)
-  roles     Role[]   @relation("UserRoles")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  roles     Role[]     @relation("UserRoles")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Role {
@@ -38,10 +38,10 @@ model Role {
 }
 
 model Permission {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
   description String?
-  roles       Role[]   @relation("RolePermissions")
+  roles       Role[]  @relation("RolePermissions")
 }
 
 model Category {
@@ -54,17 +54,18 @@ model Category {
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  description String?
-  price       Decimal   @db.Decimal(10,2)
-  stock       Int       @default(0)
-  categoryId  Int
-  category    Category  @relation("CategoryProducts", fields: [categoryId], references: [id])
-  images      ProductImage[]
+  id                 Int                     @id @default(autoincrement())
+  name               String                  @unique
+  description        String?
+  price              Decimal                 @db.Decimal(10, 2)
+  stock              Int                     @default(0)
+  categoryId         Int
+  category           Category                @relation("CategoryProducts", fields: [categoryId], references: [id])
+  images             ProductImage[]
   inventoryMovements InventoryMovement[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  technicalSheets    ProductTechnicalSheet[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 }
 
 model ProductImage {
@@ -85,9 +86,19 @@ model InventoryMovement {
   reason    String?
   reference String?
 
-  product   Product @relation(fields: [productId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ProductTechnicalSheet {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  key       String // Ej: "Peso", "Dimensiones", "Material"
+  value     String // Ej: "1.5 kg", "10x20x5 cm", "Acero inoxidable"
 
   @@index([productId])
 }
