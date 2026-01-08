@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductService } from '../services/product.service';
 import { CreateProductDto } from '../dtos/ProductCreate.dto';
 import { UpdateProductDto } from '../dtos/ProductUpdate.dto';
@@ -38,15 +39,24 @@ export class ProductController {
     }
 
     @Post(':id/images')
+    @UseInterceptors(FileInterceptor('file'))
     async addImage(
         @Param('id', ParseIntPipe) id: number,
-        @Body() dto: ProductImageDto
+        @UploadedFile() file: Express.Multer.File
     ) {
-        return this.productService.addImage(id, dto.url);
+        return this.productService.addImage(id, file);
     }
 
     @Get(':id/images')
     async getImages(@Param('id', ParseIntPipe) id: number) {
         return this.productService.getImages(id);
+    }
+
+    @Delete(':id/images/:imageId')
+    async removeImage(
+        @Param('id', ParseIntPipe) id: number,
+        @Param('imageId', ParseIntPipe) imageId: number
+    ) {
+        return this.productService.removeImage(id, imageId);
     }
 }

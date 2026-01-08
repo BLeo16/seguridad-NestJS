@@ -4,20 +4,24 @@ import { CreateProductDto } from '../dtos/ProductCreate.dto';
 import { UpdateProductDto } from '../dtos/ProductUpdate.dto'; 
 import { ProductNotFoundException } from '../exceptions/catalog-not-founf.exception';
 import { ProductNameException } from '../exceptions/catalog-unique.exception';
+import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 
 
 @Injectable()
 export class ProductService{
-    constructor(private prisma: PrismaService) { }
+    constructor(private prisma: PrismaService, private cloudinaryService: CloudinaryService) { }
     async findOneById(id: number) {
         const product = await this.prisma.product.findUnique({
-            where: { id }
+            where: { id },
+            include: { images: true },
         });
         if (!product) throw new NotFoundException(`Producto con ID ${id} no encontrado`);
         return product;
     }
     async findAll() {
-        return await this.prisma.product.findMany();
+        return await this.prisma.product.findMany({
+            include: { images: true },
+        });
     }
     async createProduct(data: CreateProductDto) {
         return this.prisma.product.create({ data });
@@ -52,8 +56,9 @@ export class ProductService{
         });
     }
 
-    async addImage(productId: number, url: string) {
+    async addImage(productId: number, file: Express.Multer.File) {
         await this.findOneById(productId); // check exists
+        const url = await this.cloudinaryService.uploadImage(file);
         return this.prisma.productImage.create({
             data: {
                 productId,
@@ -66,6 +71,20 @@ export class ProductService{
         await this.findOneById(productId);
         return this.prisma.productImage.findMany({
             where: { productId },
+        });
+    }
+
+    async removeImage(productId: number, imageId: number) {
+        await this.findOneById(productId);
+        const image = await this.prisma.productImage.findFirst({
+            where: { id: imageId, productId },
+        });
+        if (!image) {
+            throw new NotFoundException(`Imagen con ID ${imageId} no encontrada para el producto ${productId}`);
+        }
+        await this.cloudinaryService.deleteImage(image.url);
+        return this.prisma.productImage.delete({
+            where: { id: imageId },
         });
     }
 }
