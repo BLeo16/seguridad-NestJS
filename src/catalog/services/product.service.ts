@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProductDto } from '../dtos/ProductCreate.dto';
-import { UpdateProductDto } from '../dtos/ProductUpdate.dto'; 
+import { UpdateProductDto } from '../dtos/ProductUpdate.dto';
 import { ProductNotFoundException } from '../exceptions/catalog-not-founf.exception';
 import { ProductNameException } from '../exceptions/catalog-unique.exception';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 
 
 @Injectable()
-export class ProductService{
+export class ProductService {
     constructor(private prisma: PrismaService, private cloudinaryService: CloudinaryService) { }
     async findOneById(id: number) {
         const product = await this.prisma.product.findUnique({
@@ -18,12 +18,44 @@ export class ProductService{
         if (!product) throw new NotFoundException(`Producto con ID ${id} no encontrado`);
         return product;
     }
-    async findAll() {
-        return await this.prisma.product.findMany({
-            include: { images: true },
-        });
+    async findAll(page: number = 1, limit: number = 10, searchName?: string, minPrice?: number, maxPrice?: number, categoryIds?: number[]) {
+        const skip = (page - 1) * limit;
+        const where: any = {};
+        if (searchName) {
+            where.name = { contains: searchName };
+        }
+        if (minPrice !== undefined || maxPrice !== undefined) {
+            where.price = {};
+            if (minPrice !== undefined) where.price.gte = minPrice;
+            if (maxPrice !== undefined) where.price.lte = maxPrice;
+        }
+        if (categoryIds && categoryIds.length > 0) {
+            where.categoryId = { in: categoryIds };
+        }
+        const [products, total] = await Promise.all([
+            this.prisma.product.findMany({
+                include: { images: true },
+                skip,
+                take: limit,
+                where,
+            }),
+            this.prisma.product.count({ where }),
+        ]);
+        return {
+            data: products,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
     }
     async createProduct(data: CreateProductDto) {
+        const existing = await this.prisma.product.findUnique({
+            where: { name: data.name },
+        });
+        if (existing) {
+            throw new ProductNameException(data.name);
+        }
         return this.prisma.product.create({ data });
     }
 
@@ -33,7 +65,7 @@ export class ProductService{
             throw new ProductNotFoundException(id);
         }
         const existingName = await this.prisma.product.findUnique({
-            where: { name: updateProductDto.name},
+            where: { name: updateProductDto.name },
         });
         if (existingName && id !== existingName.id) {
             throw new ProductNameException(existingName.name);
