@@ -6,8 +6,8 @@ import { UpdateProductDto } from '../dtos/ProductUpdate.dto';
 import { ProductImageDto } from '../dtos/ProductImageDto';
 import { HasPermission } from 'src/auth/decorators/has-permission.decorator';
 import { PermissionGuard } from 'src/auth/guards/permission.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@UseGuards(PermissionGuard)
 @Controller('product')
 export class ProductController {
     constructor(private readonly productService: ProductService) { }
@@ -31,12 +31,14 @@ export class ProductController {
         const categoryIdsArray = categoryIds ? categoryIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : undefined;
         return this.productService.findAll(page, limit, searchName, minPriceNum, maxPriceNum, categoryIdsArray);
     }
+
+    @UseGuards(JwtAuthGuard,PermissionGuard)
     @HasPermission('CREAR_PRODUCTOS')
     @Post()
     async createProduct(@Body() ProductDto: CreateProductDto) {
         return this.productService.createProduct(ProductDto);
     }
-
+    @UseGuards(JwtAuthGuard,PermissionGuard)
     @HasPermission('EDITAR_PRODUCTOS')
     @Put(':id')
     async updateProduct(
@@ -45,13 +47,15 @@ export class ProductController {
     ) {
         return this.productService.updateProduct(id, updateProduct)
     }
-
+    
+    @UseGuards(JwtAuthGuard,PermissionGuard)
     @HasPermission('ELIMINAR_PRODUCTOS')
     @Delete(':id')
     async deleteProduct(@Param('id', ParseIntPipe) id: number) {
         return this.productService.deleteProduct(id)
     }
 
+    @UseGuards(JwtAuthGuard,PermissionGuard)
     @HasPermission('EDITAR_PRODUCTOS')
     @Post(':id/images')
     @UseInterceptors(FileInterceptor('file'))
@@ -62,12 +66,14 @@ export class ProductController {
         return this.productService.addImage(id, file);
     }
 
+    @UseGuards(JwtAuthGuard,PermissionGuard)
     @HasPermission('VER_PRODUCTOS')
     @Get(':id/images')
     async getImages(@Param('id', ParseIntPipe) id: number) {
         return this.productService.getImages(id);
     }
 
+    @UseGuards(JwtAuthGuard,PermissionGuard)
     @HasPermission('EDITAR_PRODUCTOS')
     @Delete(':id/images/:imageId')
     async removeImage(

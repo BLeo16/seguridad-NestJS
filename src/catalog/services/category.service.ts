@@ -4,6 +4,7 @@ import { CreateCategoryDto } from '../dtos/CategoryCreate.dto';
 import { UpdateCategoryDto } from '../dtos/CategoryUpdate.dto';
 import { CategoryNotFoundException } from '../exceptions/catalog-not-founf.exception';
 import { CategoryNameException } from '../exceptions/catalog-unique.exception';
+import { contains } from 'class-validator';
 
 @Injectable()
 export class CategoryService {
@@ -17,8 +18,38 @@ export class CategoryService {
         return category;
     }
 
-    async findAll() {
-        return await this.prisma.category.findMany();
+    async findAll(page: number = 1, limit: number = 10, searchName?: string) {
+        const skip = (page - 1) * limit;
+        const where = searchName ? { name: { contains: searchName } } : {};
+        return await this.prisma.category.findMany({
+            where,
+            skip,
+            take: limit
+        });
+    }
+
+    async findAllPaginated(page: number = 1, limit: number = 10, searchName?: string) {
+        const skip = (page - 1) * limit;
+        const where:any ={};
+        if (searchName){
+            where.name = {contains: searchName}
+        }
+        const [categories, total] = await Promise.all([
+            this.prisma.category.findMany({
+                skip,
+                take: limit,
+                 where,
+            }),
+            this.prisma.category.count({ where }),
+        ]);
+
+        return {
+            data: categories,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        }
     }
 
     async createCategory(data: CreateCategoryDto) {
