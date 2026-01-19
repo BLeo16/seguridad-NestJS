@@ -5,7 +5,7 @@ import { InventoryMovementType } from '@prisma/client';
 
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getProductStock(productId: number) {
     const product = await this.prisma.product.findUnique({
@@ -18,10 +18,32 @@ export class InventoryService {
     return { stock: product.stock };
   }
 
-  async inventoryLog() {
-    return this.prisma.inventoryMovement.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async inventoryLog(page: number = 1, limit: number = 10, type?: 'IN' | 'OUT' | 'ADJUSTMENT') {
+    const [movements, total] = await Promise.all([
+      this.prisma.inventoryMovement.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        where: type ? { type } : undefined,
+        include: {
+          product: {
+            select: {
+              name: true,
+            }
+          }
+        }
+      }),
+      this.prisma.inventoryMovement.count({
+        where: type ? { type } : undefined,
+      }),
+    ]);
+    return {
+      data: movements,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    }
   }
 
   async inventoryIn(dto: InventoryMovementDto) {
@@ -44,8 +66,9 @@ export class InventoryService {
       throw new NotFoundException(`Producto con ID ${dto.productId} no encontrado`);
     }
 
-    let newStock: number;
     const previousStock = product.stock;
+
+    let newStock: number;
 
     if (type === InventoryMovementType.IN) {
       newStock = previousStock + dto.quantity;
@@ -54,27 +77,30 @@ export class InventoryService {
         throw new BadRequestException('Stock insuficiente');
       }
       newStock = previousStock - dto.quantity;
-    } else if (type === InventoryMovementType.ADJUSTMENT) {
+    } else {
       newStock = dto.quantity;
     }
 
-    // Update product stock
+    // update product
     await this.prisma.product.update({
       where: { id: dto.productId },
       data: { stock: newStock },
     });
 
-    // Create movement record
+    // create movement
     const movement = await this.prisma.inventoryMovement.create({
       data: {
         productId: dto.productId,
         type,
         quantity: dto.quantity,
+        previusStock: previousStock,
+        newStock,
         reason: dto.reason,
         reference: dto.reference,
       },
     });
 
     return { movement, newStock };
+
   }
 }
