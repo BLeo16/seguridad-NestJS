@@ -13,7 +13,7 @@ export class ProductService {
     async findOneById(id: number) {
         const product = await this.prisma.product.findUnique({
             where: { id },
-            include: { images: true },
+            include: { images: true, category: true },
         });
         if (!product) throw new NotFoundException(`Producto con ID ${id} no encontrado`);
         return product;
@@ -34,7 +34,7 @@ export class ProductService {
         }
         const [products, total] = await Promise.all([
             this.prisma.product.findMany({
-                include: { images: true },
+                include: { images: true, category: true },
                 skip,
                 take: limit,
                 where,
