@@ -47,7 +47,7 @@ model Permission {
 model Category {
   id          Int       @id @default(autoincrement())
   name        String    @unique
-  description String?
+  description String?   @db.Text
   products    Product[] @relation("CategoryProducts")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -56,7 +56,7 @@ model Category {
 model Product {
   id                 Int                     @id @default(autoincrement())
   name               String                  @unique
-  description        String?
+  description        String?                 @db.Text
   price              Decimal                 @db.Decimal(10, 2)
   stock              Int                     @default(0)
   categoryId         Int
