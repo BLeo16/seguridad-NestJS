@@ -5,11 +5,24 @@ import { UpdateProductDto } from '../dtos/ProductUpdate.dto';
 import { ProductNotFoundException } from '../exceptions/catalog-not-founf.exception';
 import { ProductNameException } from '../exceptions/catalog-unique.exception';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
+import { slugify } from 'src/common/utils/slugify';
 
 
 @Injectable()
 export class ProductService {
     constructor(private prisma: PrismaService, private cloudinaryService: CloudinaryService) { }
+    async findOneBySlug(slug: string) {
+        const product = await this.prisma.product.findUnique({
+            where: { slug },
+            include: {
+                category: true,
+                images: true,
+            },
+        });
+
+        return product;
+    }
+
     async findOneById(id: number) {
         const product = await this.prisma.product.findUnique({
             where: { id },
@@ -56,7 +69,15 @@ export class ProductService {
         if (existing) {
             throw new ProductNameException(data.name);
         }
-        return this.prisma.product.create({ data });
+        const product = this.prisma.product.create({ data });
+
+        const slug = `${slugify((await product).name)}-${(await product).id}`;
+
+        await this.prisma.product.update({
+            where: { id: (await product).id },
+            data: { slug },
+        });
+        return product;
     }
 
     async updateProduct(id: number, updateProductDto: UpdateProductDto) {
