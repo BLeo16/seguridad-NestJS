@@ -1,4 +1,4 @@
-import { Controller, Param, Get, ParseIntPipe, Patch, Body, UseGuards } from '@nestjs/common';
+import { Controller, Param, Get, ParseIntPipe, Patch, Body, UseGuards, Query } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { HasPermission } from 'src/auth/decorators/has-permission.decorator';
@@ -10,6 +10,16 @@ import { UserStatus } from '@prisma/client';
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
+
+    @HasPermission('VER_USUARIOS')
+    @Get()
+    async getAllUsers(
+        @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+        @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
+        @Query('searchEmail') searchEmail?: string,
+    ) {
+        return this.usersService.findAll(page, limit, searchEmail);
+    }
 
     @Get(':id')
     async getUserById(@Param('id', ParseIntPipe) id: number) {
@@ -38,12 +48,6 @@ export class UsersController {
         @Body('status') status: UserStatus
     ) {
         return this.usersService.updateUserStatus(id, status);
-    }
-
-    @Get()
-    @HasPermission('VER_USUARIOS')
-    async getAllUsers() {
-        return this.usersService.findAll();
     }
 
 }

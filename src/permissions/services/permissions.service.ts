@@ -13,15 +13,35 @@ export class PermissionService {
             where: { id }
         })
 
-        if(!permission){
+        if (!permission) {
             throw new PermissionNotFoudExpeception(id);
         }
 
         return permission;
     }
 
-    async finAll() {
-        return await this.prisma.permission.findMany();
+    async finAll(page: number = 1, limit: number = 10, searchName?: string) {
+        const skip = (page - 1) * limit;
+        const where: any = {};
+        if (searchName) {
+            where.name = { contains: searchName }
+        }
+        const [permissions, total] = await Promise.all([
+            this.prisma.permission.findMany({
+                skip,
+                take: limit,
+                where
+            }),
+            this.prisma.permission.count({ where })
+        ])
+
+        return {
+            data: permissions,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
     }
 
     async createPermission(permissionDto: PermissionDto) {

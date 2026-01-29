@@ -7,14 +7,14 @@ import { UserStatus } from '@prisma/client';
 export class UsersService {
     constructor(private prisma: PrismaService) { }
 
-    // Buscar usuario por ID (incluye roles y permisos)
     async findOneById(id: number) {
         const user = await this.prisma.user.findUnique({
             where: { id },
             include: {
                 roles: {
-                    include: {
-                        permissions: true,
+                    select: {
+                        id: true,
+                        name: true
                     },
                 },
             },
@@ -27,7 +27,6 @@ export class UsersService {
         return user;
     }
 
-    // 🔹 Buscar usuario por email (incluye roles y permisos)
     async findOneByEmail(email: string) {
         const user = await this.prisma.user.findUnique({
             where: { email },
@@ -60,37 +59,36 @@ export class UsersService {
     }
 
     async updateUserRoles(id: number, roles: string[]) {
-        // Verificar que el usuario exista
+        // 1. Verificar que el usuario exista
         const user = await this.prisma.user.findUnique({ where: { id } });
         if (!user) {
             throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
         }
 
-        // Buscar los roles existentes por nombre
-        const rolesFound = await this.prisma.role.findMany({
-            where: {
-                name: { in: roles },
-            },
-        });
+        let rolesFound = [];
+        if (roles.length > 0) {
+            rolesFound = await this.prisma.role.findMany({
+                where: {
+                    name: { in: roles },
+                },
+            });
 
-        if (rolesFound.length === 0) {
-            throw new NotFoundException(
-                `No se encontraron roles válidos: ${roles.join(', ')}`,
-            );
+            if (rolesFound.length !== roles.length) {
+                throw new NotFoundException(`Algunos roles no son válidos`);
+            }
         }
 
-        // Actualizar relación M:N entre usuario y roles
         const updatedUser = await this.prisma.user.update({
             where: { id },
             data: {
                 roles: {
-                    set: [], // elimina roles actuales
-                    connect: rolesFound.map((r) => ({ id: r.id })), // asigna nuevos
+                    set: [], 
+                    connect: rolesFound.map((r) => ({ id: r.id })), // Conecta los nuevos (si los hay)
                 },
             },
             include: {
                 roles: {
-                    include: { permissions: true },
+                    select: { id: true, name: true }
                 },
             },
         });
@@ -98,16 +96,36 @@ export class UsersService {
         return updatedUser;
     }
 
-    async findAll(){
-        return this.prisma.user.findMany({
-            include: {
-                roles: {
-                    include: {
-                        permissions: true,
-                    },
-                },
-            },
-        });
+    async findAll(page: number = 1, limit: number = 10, searchEmail?: string) {
+        const skip = (page - 1) * limit;
+        const where: any = {};
+        if (searchEmail) {
+            where.email = { contains: searchEmail }
+        }
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                skip,
+                take: limit,
+                where,
+                include: {
+                    roles: {
+                        select: {
+                            id: true,
+                            name: true
+                        }
+                    }
+                }
+            }),
+            this.prisma.user.count({ where })
+        ]);
+
+        return {
+            data: users,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
     }
 
     async updateUserStatus(id: number, status: UserStatus) {

@@ -1,8 +1,8 @@
-import { Controller, Param, Get, Patch, Body, UseGuards, ParseIntPipe, Post, Delete } from "@nestjs/common";
+import { Controller, Param, Get, Patch, Body, UseGuards, ParseIntPipe, Post, Delete, Query } from "@nestjs/common";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
 import { PermissionGuard } from "src/auth/guards/permission.guard";
 import { RolesService } from "../services/roles.service";
-import { RoleDto } from "../dtos/role.dto";
+import { RoleDto } from "../dtos/Role.dto";
 import { UpdateRoleDto } from "../dtos/RoleUpdate.dto";
 import { HasPermission } from "src/auth/decorators/has-permission.decorator";
 
@@ -11,15 +11,20 @@ import { HasPermission } from "src/auth/decorators/has-permission.decorator";
 export class RolesController {
     constructor(private readonly rolesService: RolesService) { }
 
+    @Get()
+    @HasPermission('VER_ROLES')
+    async getAllRoles(
+        @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+        @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
+        @Query('searchName') searchName?: string,
+    ) {
+        return this.rolesService.findAll(page, limit, searchName);
+    }
+
     @Get(':id')
     @HasPermission('VER_ROLES')
     async getRoleById(@Param('id', ParseIntPipe) id: number) {
         return this.rolesService.findOneById(id);
-    }
-    @Get()
-    @HasPermission('VER_ROLES')
-    async getAllRoles (){
-        return this.rolesService.findAll();
     }
 
     @Post()

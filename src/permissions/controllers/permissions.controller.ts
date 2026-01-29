@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { PermissionDto } from "../dtos/Permission.dto";
 import { PermissionService } from "../services/permissions.service";
 import { PermissionGuard } from "src/auth/guards/permission.guard";
@@ -10,16 +10,20 @@ import { HasPermission } from "src/auth/decorators/has-permission.decorator";
 export class PermissionController {
     constructor(private permissionService: PermissionService) { }
 
+    @Get()
+    @HasPermission('VER_PERMISOS')
+    async getAllPermissions(
+        @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+        @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
+        @Query('searchName') searchName?: string,
+    ) {
+        return this.permissionService.finAll(page, limit, searchName);
+    }
+
     @Get(':id')
     @HasPermission('VER_PERMISOS')
     async getPermissionById(@Param('id', ParseIntPipe) id: number) {
         return this.permissionService.findOneById(id);
-    }
-
-    @Get()
-    @HasPermission('VER_PERMISOS')
-    async getAllPermissions() {
-        return this.permissionService.finAll();
     }
 
     @Post()
